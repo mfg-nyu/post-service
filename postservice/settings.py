@@ -12,8 +12,28 @@ https://docs.djangoproject.com/en/3.0/ref/settings/
 
 import os
 
+from dotenv import load_dotenv
+from mongoengine import connect
+
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+
+class MisconfiguredEnvironmentException(Exception):
+    def __str__(self):
+        return 'One or more environment variables are missing.'
+
+
+load_dotenv(verbose=True)
+DB_ID = os.environ.get('DB_USERNAME')
+DB_PW = os.environ.get('DB_PASSWORD')
+DB_HOST = os.environ.get('DB_HOST')
+DB_QUERIES = os.environ.get('DB_QUERIES')
+
+try:
+    assert not any(v is None for v in [DB_ID, DB_PW, DB_HOST, DB_QUERIES])
+except Exception as e:
+    raise MisconfiguredEnvironmentException()
 
 
 # Quick-start development settings - unsuitable for production
@@ -72,14 +92,16 @@ WSGI_APPLICATION = 'postservice.wsgi.application'
 
 # Database
 # https://docs.djangoproject.com/en/3.0/ref/settings/#databases
+# The defualt DB config object is removed in place of an mongoengine connection.
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
-    }
-}
-
+try:
+    connect(
+        'posts-db-test',
+        # host=f'mongodb+srv://MFGAdmin:esiXyudPQqGrJKt3bhTn@cluster0-d7juh.mongodb.net/test?retryWrites=true&w=majority'
+        host=f'mongodb+srv://{DB_ID}:{DB_PW}@{DB_HOST}/{DB_QUERIES}'
+    )
+except Exception as e:
+    print(e)
 
 # Password validation
 # https://docs.djangoproject.com/en/3.0/ref/settings/#auth-password-validators
